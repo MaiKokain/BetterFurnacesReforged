@@ -26,7 +26,7 @@ public class SlotUpgrade extends SlotItemHandler {
 
 	@Override
 	public int getItemStackLimit(ItemStack stack) {
-		return 1;
+		return stack.getMaxStackSize();
 	}
 
 }

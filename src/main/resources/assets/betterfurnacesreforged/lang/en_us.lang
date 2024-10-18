@@ -10,6 +10,7 @@ tile.betterfurnacesreforged.extreme_forge.name=Extreme Forge
 
 item.betterfurnacesreforged.ore_processing_upgrade.name=Ore Processing Upgrade
 item.betterfurnacesreforged.advanced_ore_processing_upgrade.name=Advanced Ore Processing Upgrade
+item.betterfurnacesreforged.processing_upgrade.name=Processing Upgrade
 item.betterfurnacesreforged.liquid_fuel_upgrade.name=Liquid Fuel Upgrade
 item.betterfurnacesreforged.fuel_efficiency_upgrade.name=Fuel Efficiency Upgrade
 item.betterfurnacesreforged.advanced_fuel_efficiency_upgrade.name=Advanced Fuel Efficiency Upgrade
@@ -35,6 +36,7 @@ info.betterfurnacesreforged.color=Change the color of the furnace
 info.betterfurnacesreforged.ores=Enables the processing of ores
 info.betterfurnacesreforged.kit=Upgrades %s into %s
 info.betterfurnacesreforged.fluid=Uses liquid fuel instead of solid fuel.
+info.betterfurnacesreforged.processing=Doubles any item output
 
 gui.betterfurnacesreforged.fluid=%s: %s mB
 gui.betterfurnacesreforged.energy=%s kFE/%s kFE

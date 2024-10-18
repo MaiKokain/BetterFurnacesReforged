@@ -47,6 +47,7 @@ public class ModObjects{
 	public static final ItemUpgradeDamage ORE_PROCESSING_UPGRADE = null;
 	public static final ItemUpgrade ADVANCED_FUEL_EFFICIENCY_UPGRADE = null;
 	public static final ItemUpgrade ADVANCED_ORE_PROCESSING_UPGRADE = null;
+	public static final ItemUpgrade PROCESSING_UPGRADE = null;
 	public static final ItemUpgrade LIQUID_FUEL_UPGRADE = null;
 	public static final ItemUpgrade ENERGY_UPGRADE = null;
 	public static final ItemUpgrade COLOR_UPGRADE = null;
@@ -101,6 +102,7 @@ public class ModObjects{
 				new ItemUpgradeDamage("ore_processing_upgrade", "info.betterfurnacesreforged.ores", 3,128),
 				new ItemUpgrade("advanced_fuel_efficiency_upgrade", "info.betterfurnacesreforged.efficiency",2),
 				new ItemUpgrade("advanced_ore_processing_upgrade", "info.betterfurnacesreforged.ores",3),
+				new ItemUpgrade("processing_upgrade", "info.betterfurnacesreforged.processing", 4, 64),
 				new ItemUpgrade("liquid_fuel_upgrade", "info.betterfurnacesreforged.fluid",1),
 				new ItemUpgrade("energy_upgrade", "info.betterfurnacesreforged.energy",1),
 				new ItemUpgradeColor("color_upgrade", "info.betterfurnacesreforged.color"),

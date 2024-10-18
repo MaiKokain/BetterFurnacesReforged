@@ -13,7 +13,9 @@ import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.fluids.FluidActionResult;
 import net.minecraftforge.fluids.FluidUtil;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.logging.log4j.Level;
 import wily.betterfurnaces.BetterFurnacesReforged;
+import wily.betterfurnaces.Config;
 import wily.betterfurnaces.blocks.BlockSmelting;
 import wily.betterfurnaces.init.ModObjects;
 import wily.betterfurnaces.inventory.SlotFuel;
@@ -246,7 +248,7 @@ public class TileEntitySmeltingBase extends TileEntity implements ITickable {
 			for (int a : INPUTS())
 				if (this.isBurning() && !inv.getStackInSlot(a).isEmpty()) energy.extractEnergy(getEnergyUse() * (hasUpgradeType(ModObjects.ORE_PROCESSING_UPGRADE) && isOre(inv.getStackInSlot(a)) ? 2 : 1), false);
 		} else if (isFluid() && Liquid) {
-			fuelLength = (burnTime =  (hasUpgradeType(ModObjects.FUEL_EFFICIENCY_UPGRADE) ? 2 : 1) * getDefaultCookTime());
+			fuelLength = (burnTime =  (hasUpgradeType(ModObjects.FUEL_EFFICIENCY_UPGRADE) ? Config.fuelEfficiencyStat : 1) * getDefaultCookTime());
 			if (this.isBurning()) tank.drain(Math.max( getFluidBurnTime(tank.getFluid()) / 200,1), true);
 		} else if ((isEnergy() && !Energy) || (isFluid() && !Liquid) || (!isEnergy() && !isFluid()) ){
 
@@ -315,6 +317,10 @@ public class TileEntitySmeltingBase extends TileEntity implements ITickable {
 			check = check.copy();
 			check.grow(check.getCount());
 		}
+		if (hasUpgradeType(ModObjects.PROCESSING_UPGRADE)) {
+			check = check.copy();
+			check.grow(check.getCount() * getUpgradeTypeSlotItem(ModObjects.PROCESSING_UPGRADE).getCount());
+		}
 
 		return !recipeOutput.isEmpty() && (output.isEmpty() || (ItemHandlerHelper.canItemStacksStack(check, output) && (check.getCount() + output.getCount() <= output.getMaxStackSize())));
 	}
@@ -382,7 +388,6 @@ public class TileEntitySmeltingBase extends TileEntity implements ITickable {
 			if (upg == inv.getStackInSlot(slot).getItem()) return inv.getStackInSlot(slot);
 		return inv.getStackInSlot(UPGRADES()[0]);
 	}
-
 	/**
 	 * @param stack The item in the fuel slot.
 	 * @return The burn time for this fuel, or 0, if this is an electric furnace.
@@ -458,6 +463,7 @@ public class TileEntitySmeltingBase extends TileEntity implements ITickable {
 
 	private ItemStack getResult(int i) {
 		ItemStack input = inv.getStackInSlot(i);
+
 		if (hasUpgradeType(ModObjects.ORE_PROCESSING_UPGRADE)) {
 			ItemStack out = OreProcessingRegistry.getSmeltingResult(input).copy();
 			if (out.isEmpty() && isOre(recipeKey)) {
@@ -469,6 +475,15 @@ public class TileEntitySmeltingBase extends TileEntity implements ITickable {
 				return out;
 			}
         }
+
+		if (hasUpgradeType(ModObjects.PROCESSING_UPGRADE)) {
+			ItemStack out = FurnaceRecipes.instance().getSmeltingList().get(recipeKey).copy();
+			int OutVal = out.getCount() * getUpgradeTypeSlotItem(ModObjects.PROCESSING_UPGRADE).getCount();
+			out.grow(OutVal);
+			hasOreResult = false;
+			return out.copy();
+		}
+
 		hasOreResult = false;
 		return FurnaceRecipes.instance().getSmeltingList().get(recipeKey).copy();
 	}

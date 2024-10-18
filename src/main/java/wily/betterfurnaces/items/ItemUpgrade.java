@@ -26,6 +26,17 @@ public class ItemUpgrade extends Item {
 		upgradeType = Type;
 
 	}
+
+	public ItemUpgrade(String name, String tooltipKey, int Type, int Max) {
+		this.setUnlocalizedName(BetterFurnacesReforged.MODID + "." + name);
+		this.setRegistryName(new ResourceLocation(BetterFurnacesReforged.MODID, name));
+		this.setMaxStackSize(Max);
+		this.setCreativeTab(BetterFurnacesReforged.BF_TAB);
+		this.tooltipKey = tooltipKey;
+		upgradeType = Type;
+
+	}
+
 	@Override
 	@SideOnly(Side.CLIENT)
 	public void addInformation(ItemStack stack, World player, List<String> tooltip, ITooltipFlag advanced) {
