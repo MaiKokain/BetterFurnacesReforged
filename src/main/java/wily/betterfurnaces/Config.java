@@ -31,7 +31,7 @@ public class Config {
         diamondTierSpeed = cfg.getInt("diamondTierSpeed", "furnaces", 50, 1, 200, "Number of ticks to complete one smelting operation.\n 200 ticks is what a regular furnace takes.");
         netherhotTierSpeed = cfg.getInt("netherhotTierSpeed", "furnaces", 8, 1, 200, "Number of ticks to complete one smelting operation.\n 200 ticks is what a regular furnace takes.");
         extremeTierSpeed = cfg.getInt("extremeTierSpeed", "furnaces", 4, 1, 200, "Number of ticks to complete one smelting operation.\n 200 ticks is what a regular furnace takes.");
-        fuelEfficiencyStat = (int) cfg.getFloat("fuelEfficiencyStat", "furnaces", 2, 1, Integer.MAX_VALUE, "Set the efficiency level for both efficiency upgrades.\n (fuelEfficiencyStat*furnaceTierSpeed = fuelBurnTime)");
+        fuelEfficiencyStat = (int) cfg.getFloat("fuelEfficiencyStat", "furnaces", 2, 1, Integer.MAX_VALUE, "Set the efficiency level for both efficiency upgrades.\n (fuelEfficiencyStat*furnaceTierSpeed)");
         if (cfg.hasChanged()) cfg.save();
     }
 }

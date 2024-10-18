@@ -1,3 +1,19 @@
+# Fork Changes
+- Adds "Processing Upgrade" 
+  - Doubles any item amount
+  - can stack to 64
+  - output calculation: `(RecipeOutput * ProcessingUpgradeAmount)`
+    - eg: recipe output is `2`, you have `64` processing upgrade, the calculation would be `2 * 64 = 128` so the item output would be `128`
+
+
+- Allows chaning configuration of "Fuel Efficiency" upgrade, both normal and advanced
+  - Can be configured up to `Integer.MAX_VALUE`, floating point
+  - fuel burn time calculation: `(FuelEfficiencyStat * FurnaceTierSpeed)`
+    - eg: configured efficiency stat `3.0`,  furnaceSpeed: `150` (iron tier), it would be `3.0 * 150 = 450` so the fuel burn time would be `450`
+
+# Current issue
+Output slot bugging out if item amount is higher than 64, this wasn't an issue with `Furnace Overhaul` so not fixing. Pipe it to a chest or something.
+
 # BetterFurnacesReforged
 Resume
 

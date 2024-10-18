@@ -479,7 +479,7 @@ public class TileEntitySmeltingBase extends TileEntity implements ITickable {
 		if (hasUpgradeType(ModObjects.PROCESSING_UPGRADE)) {
 			ItemStack out = FurnaceRecipes.instance().getSmeltingList().get(recipeKey).copy();
 			int OutVal = out.getCount() * getUpgradeTypeSlotItem(ModObjects.PROCESSING_UPGRADE).getCount();
-			out.grow(OutVal);
+			out.setCount(OutVal);
 			hasOreResult = false;
 			return out.copy();
 		}
