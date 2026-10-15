@@ -162,15 +162,29 @@ public abstract class BlockSmelting extends Block  implements  TopCompatibility.
 		if (te instanceof TileEntitySmeltingBase){
 			TileEntitySmeltingBase tse = (TileEntitySmeltingBase) te;
 			ItemStackHandler h = tse.getInventory();
-			int cookTime = tse.getCurrentCookTime();
+//			int cookTime = tse.getCurrentCookTime();
 			int defaultCook = tse.getCookTime();
 
 			IProgressStyle style= probeInfo.defaultProgressStyle().showText(false).width(20);
 			if (state.getBlock() instanceof BlockBetterFurnace)
-				probeInfo.horizontal().item(h.getStackInSlot(1)).item(h.getStackInSlot(0)).progress(cookTime,defaultCook,style).item(h.getStackInSlot(2));
+				probeInfo.horizontal().item(h.getStackInSlot(1)).item(h.getStackInSlot(0)).progress(tse.getCurrentCookTime(0),defaultCook,style).item(h.getStackInSlot(2));
 			else if (state.getBlock() instanceof BlockForge) {
-				probeInfo.
-						horizontal().item(h.getStackInSlot(3)).item(h.getStackInSlot(0)).item(h.getStackInSlot(1)).item(h.getStackInSlot(2)).progress(cookTime,defaultCook,style).item(h.getStackInSlot(4)).item(h.getStackInSlot(5)).item(h.getStackInSlot(6));
+				int[][] slots = tse.getCookSlots();
+				probeInfo.horizontal()
+						.item(h.getStackInSlot(3))
+						.item(h.getStackInSlot(0))
+						.progress(tse.getCurrentCookTime(0), defaultCook, style)
+						.item(h.getStackInSlot(4));
+				probeInfo.horizontal()
+						.item(h.getStackInSlot(1))
+						.progress(tse.getCurrentCookTime(1), defaultCook, style)
+						.item(h.getStackInSlot(5));
+				probeInfo.horizontal()
+						.item(h.getStackInSlot(2))
+						.progress(tse.getCurrentCookTime(2), defaultCook, style)
+						.item(h.getStackInSlot(6));
+//				probeInfo.
+//						horizontal().item(h.getStackInSlot(3)).item(h.getStackInSlot(0)).item(h.getStackInSlot(1)).item(h.getStackInSlot(2)).progress(cookTime,defaultCook,style).item(h.getStackInSlot(4)).item(h.getStackInSlot(5)).item(h.getStackInSlot(6));
 			}
 
 		}

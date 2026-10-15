@@ -1,6 +1,7 @@
 package wily.betterfurnaces.tile;
 
 import static wily.betterfurnaces.Config.netherhotTierSpeed;
+import static wily.betterfurnaces.Config.netherhotParallel;
 
 public class TileEntityNetherhotFurnace extends TileEntitySmeltingBase {
 
@@ -9,5 +10,8 @@ public class TileEntityNetherhotFurnace extends TileEntitySmeltingBase {
 		return netherhotTierSpeed;
 	}
 
-
+	@Override
+	protected int getMaxParallel(int slotIndex) {
+		return netherhotParallel;
+	}
 }

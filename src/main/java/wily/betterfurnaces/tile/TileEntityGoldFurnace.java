@@ -1,6 +1,8 @@
 package wily.betterfurnaces.tile;
 
 import static wily.betterfurnaces.Config.goldTierSpeed;
+import static wily.betterfurnaces.Config.goldParallel;
+
 
 public class TileEntityGoldFurnace extends TileEntitySmeltingBase {
 
@@ -9,4 +11,8 @@ public class TileEntityGoldFurnace extends TileEntitySmeltingBase {
 		return goldTierSpeed;
 	}
 
+	@Override
+	protected int getMaxParallel(int slotIndex) {
+		return goldParallel;
+	}
 }

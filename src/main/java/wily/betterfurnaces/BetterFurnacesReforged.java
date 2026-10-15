@@ -1,5 +1,7 @@
 package wily.betterfurnaces;
 
+import net.minecraftforge.fml.client.event.ConfigChangedEvent;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import
 		wily.betterfurnaces.gitup.UpCheck;
 import org.apache.logging.log4j.LogManager;
@@ -30,7 +32,7 @@ import net.minecraftforge.fml.relauncher.Side;
 
 import static wily.betterfurnaces.Config.checkUpdates;
 
-@Mod(modid = BetterFurnacesReforged.MODID, name = BetterFurnacesReforged.MODNAME, version = BetterFurnacesReforged.VERSION, useMetadata = true)
+@Mod(modid = BetterFurnacesReforged.MODID, name = BetterFurnacesReforged.MODNAME, version = BetterFurnacesReforged.VERSION, useMetadata = true, guiFactory = "wily.betterfurnaces.ConfigGuiFactory")
 public class BetterFurnacesReforged {
 	public static final String MODID = "betterfurnacesreforged";
 	public static final String MODNAME = "BetterFurnaces Reforged";
@@ -85,5 +87,4 @@ public class BetterFurnacesReforged {
 			ModItemColors.registerItemColors();
 		}
 	}
-
 }

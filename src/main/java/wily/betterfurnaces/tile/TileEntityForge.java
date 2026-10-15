@@ -1,10 +1,13 @@
 package wily.betterfurnaces.tile;
 
+import static wily.betterfurnaces.Config.forgeTierSpeed;
+import static wily.betterfurnaces.Config.forgeParallel;
+
 public class TileEntityForge extends TileEntitySmeltingBase {
 	//Constants
 	@Override
 	protected int getDefaultCookTime() {
-		return 4;
+		return forgeTierSpeed;
 	}
 	public int FUEL() {return 3;}
 	public int[] UPGRADES(){ return new int[] {7, 8, 9, 10, 11, 12,13};}
@@ -28,5 +31,19 @@ public class TileEntityForge extends TileEntitySmeltingBase {
 		if (canSmelt(FINPUT(), FOUTPUT())) smeltItem( FINPUT(), FOUTPUT());
 		if (canSmelt(FINPUT() + 1, FOUTPUT() + 1)) smeltItem( FINPUT() + 1, FOUTPUT() + 1);
 		if (canSmelt(FINPUT() + 2, FOUTPUT() + 2)) smeltItem( FINPUT() + 2, FOUTPUT() + 2);
+	}
+
+	@Override
+	protected int[][] cookSlots() {
+		return new int[][]{
+				{ FINPUT(), FOUTPUT() },
+				{ FINPUT() + 1, FOUTPUT() + 1 },
+				{ FINPUT() + 2, FOUTPUT() + 2 }
+		};
+	}
+
+	@Override
+	protected int getMaxParallel(int slotIndex) {
+		return forgeParallel;
 	}
 }

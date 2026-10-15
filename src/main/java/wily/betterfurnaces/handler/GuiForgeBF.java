@@ -109,7 +109,7 @@ public class GuiForgeBF extends GuiContainer {
 	}
 
 	private int getCookProgressScaled(int pixels) {
-		int cur = tf.getCurrentCookTime();
+		int cur = tf.getCurrentCookTime(0);
 		int max = tf.getCookTime();
 		return getPixels(cur, max, pixels);
 	}

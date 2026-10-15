@@ -4,17 +4,19 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map.Entry;
 import java.util.Random;
 
+import static wily.betterfurnaces.Config.ironParallel;
+import static wily.betterfurnaces.Config.ironTierSpeed;
+
 import net.minecraft.init.SoundEvents;
 import net.minecraft.network.NetworkManager;
 import net.minecraft.network.play.server.SPacketUpdateTileEntity;
 import net.minecraft.util.SoundCategory;
+import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.energy.CapabilityEnergy;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.fluids.FluidActionResult;
 import net.minecraftforge.fluids.FluidUtil;
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.logging.log4j.Level;
-import wily.betterfurnaces.BetterFurnacesReforged;
 import wily.betterfurnaces.Config;
 import wily.betterfurnaces.blocks.BlockSmelting;
 import wily.betterfurnaces.init.ModObjects;
@@ -65,6 +67,21 @@ public class TileEntitySmeltingBase extends TileEntity implements ITickable {
 	public int MAX_FE_TRANSFER(){ return 2400;}
 	public int MAX_ENERGY_STORED(){ return 16000;}
 	public int inventorySize(){ return 6;}
+	protected int[] slotCookTime = new int[] {0};
+	protected int[] slotCookTimePrev = new int[] {0};
+
+	protected int[][] cookSlots() {
+		return new int[][] { { FINPUT(), FOUTPUT() } };
+	}
+
+	protected int getMaxParallel(int slotIndex)
+	{
+		return ironParallel;
+	}
+
+	public int[] getSlotCookTimes() {
+		return slotCookTime;
+	}
 
 	//Item Handling, RangedWrappers are for sided i/o
 	protected final ItemStackHandler inv = new ItemStackHandler(inventorySize()) {
@@ -101,7 +118,6 @@ public class TileEntitySmeltingBase extends TileEntity implements ITickable {
 	protected ItemStack recipeOutput = ItemStack.EMPTY;
 	protected ItemStack failedMatch = ItemStack.EMPTY;
 	protected int burnTime = 0;
-	protected int currentCookTime = 0;
 	protected int fuelLength = 0;
 
 	@ItemStackHolder(value = "minecraft:sponge", meta = 1)
@@ -115,8 +131,18 @@ public class TileEntitySmeltingBase extends TileEntity implements ITickable {
 		energy.setEnergy(tag.getInteger("energy"));
 		burnTime = tag.getInteger("burn_time");
 		fuelLength = tag.getInteger("fuel_length");
-		currentCookTime = tag.getInteger("current_cook_time");
 		tank.readFromNBT(tag.getCompoundTag("tank"));
+
+		// Per-slot cook times
+		if (tag.hasKey("slot_cook_time")) {
+			int[] arr = tag.getIntArray("slot_cook_time");
+			if (slotCookTime.length != arr.length) slotCookTime = new int[arr.length];
+			System.arraycopy(arr, 0, slotCookTime, 0, arr.length);
+		} else {
+			// Backwards compat: old saves had a single current_cook_time
+			int old = tag.getInteger("current_cook_time");
+			slotCookTime[0] = old;
+		}
 	}
 
 	@Override
@@ -126,8 +152,7 @@ public class TileEntitySmeltingBase extends TileEntity implements ITickable {
 		compound.setInteger("energy", energy.getEnergyStored());
 		compound.setInteger("burn_time", burnTime);
 		compound.setInteger("fuel_length", fuelLength);
-		compound.setInteger("current_cook_time", currentCookTime);
-		compound.setInteger("default_cook", getDefaultCookTime());
+		compound.setIntArray("slot_cook_time", slotCookTime);
 		compound.setTag("tank", tank.writeToNBT(new NBTTagCompound()));
 		return compound;
 	}
@@ -140,7 +165,11 @@ public class TileEntitySmeltingBase extends TileEntity implements ITickable {
 		energy.setEnergy(fromNet[0]);
 		burnTime = fromNet[1];
 		fuelLength = fromNet[2];
-		currentCookTime = fromNet[3];
+
+		int slotCount = fromNet.length - 3;
+		if (slotCookTime.length != slotCount) slotCookTime = new int[slotCount];
+		System.arraycopy(fromNet, 3, slotCookTime, 0, slotCount);
+
 		tank.setFluid(fluid);
 	}
 
@@ -151,14 +180,16 @@ public class TileEntitySmeltingBase extends TileEntity implements ITickable {
 		buf.writeInt(energy.getEnergyStored());
 		buf.writeInt(burnTime);
 		buf.writeInt(fuelLength);
-		buf.writeInt(currentCookTime);
+		for (int t : slotCookTime) buf.writeInt(t);
+
 		FluidStack fluid = tank.getFluid();
-		if (fluid == null) {
+		if (fluid == null || fluid.getFluid() == null) {
 			buf.writeInt(4);
 			buf.writeCharSequence("null", StandardCharsets.UTF_8);
 		} else {
-			buf.writeInt(fluid.getFluid().getName().length());
-			buf.writeCharSequence(fluid.getFluid().getName(), StandardCharsets.UTF_8);
+			String name = fluid.getFluid().getName();
+			buf.writeInt(name.length());
+			buf.writeCharSequence(name, StandardCharsets.UTF_8);
 			buf.writeInt(fluid.amount);
 		}
 	}
@@ -204,14 +235,7 @@ public class TileEntitySmeltingBase extends TileEntity implements ITickable {
 
 		if (this.isBurning()) {
 			burnTime--;
-			if (canSmelts()) {
-				currentCookTime++;
-				if (this.currentCookTime >= this.getCookTime()) {
-					this.trySmelt();
-					this.currentCookTime = 0;
-				}
-			}
-			else currentCookTime = 0;
+			tickCooking();
 		}
 
 		if (!this.isBurning() && (isAltFuel() || !fuel.isEmpty())) {
@@ -219,6 +243,116 @@ public class TileEntitySmeltingBase extends TileEntity implements ITickable {
 		}
 
 		if (wasBurning && !isBurning()) world.setBlockState(pos, getDimState());
+	}
+
+	protected void tickCooking() {
+		int[][] slots = cookSlots();
+		if (slotCookTime.length != slots.length) {
+			slotCookTime = new int[slots.length];
+			slotCookTimePrev = new int[slots.length];
+		}
+
+		int cookTime = getCookTime();
+		boolean dirty = false;
+
+		for (int i = 0; i < slots.length; i++) {
+			int in = slots[i][0];
+			int out = slots[i][1];
+
+			if (!canSmelt(in, out)) {
+				if (slotCookTime[i] != 0) {
+					slotCookTime[i] = 0;
+					dirty = true;
+				}
+				continue;
+			}
+
+			int parallel = getMaxParallel(i);
+			if (parallel > 1) {
+				int canDo = calculateParallelCount(in, out, parallel);
+				if (canDo <= 0) {
+					slotCookTime[i] = 0;
+					continue;
+				}
+				slotCookTime[i] += canDo;
+				if (slotCookTime[i] >= cookTime) {
+					smeltParallel(in, out, canDo);
+					slotCookTime[i] = 0;
+					dirty = true;
+				}
+			} else {
+				if (cookTime <= 0) {
+					smeltItem(in, out);
+					slotCookTime[i] = 0;
+					dirty = true;
+				} else {
+					slotCookTime[i]++;
+					if (slotCookTime[i] >= cookTime) {
+						smeltItem(in, out);
+						slotCookTime[i] = 0;
+						dirty = true;
+					}
+				}
+			}
+		}
+		if (dirty) markDirty();
+	}
+
+	protected int calculateParallelCount(int in, int out, int maxParallel) {
+		ItemStack input = inv.getStackInSlot(in);
+		ItemStack output = inv.getStackInSlot(out);
+		if (input.isEmpty()) return 0;
+
+		ItemStack result = getResult(in);
+		if (result.isEmpty()) return 0;
+
+		int parallel = Math.min(maxParallel, input.getCount());
+
+		if (!output.isEmpty()) {
+			int room = output.getMaxStackSize() - output.getCount();
+			parallel = Math.min(parallel, room	/ result.getCount());
+		} else {
+			parallel = Math.min(parallel, output.getMaxStackSize() / result.getCount());
+		}
+
+		return Math.max(parallel, 0);
+	}
+
+	protected void smeltParallel(int in, int out, int count) {
+		if (count <= 0) return;
+
+		ItemStack input = inv.getStackInSlot(in);
+		ItemStack output = inv.getStackInSlot(out);
+		ItemStack result = getResult(in);
+		if (result.isEmpty()) return;
+
+		ItemStack totalOut = result.copy();
+		totalOut.setCount(result.getCount() * count);
+
+		if (output.isEmpty()) {
+			inv.setStackInSlot(out, totalOut);
+		} else {
+			output.grow(totalOut.getCount());
+		}
+
+		input.shrink(count);
+
+		// Handle upgrades once, scaled by count
+		if (hasUpgrade(ModObjects.ORE_PROCESSING_UPGRADE)) {
+			ItemStack stack = getUpgradeSlotItem(ModObjects.ORE_PROCESSING_UPGRADE);
+			if (stack.attemptDamageItem(count, new Random(), null)) {
+				stack.shrink(1);
+				stack.setItemDamage(0);
+			}
+		}
+
+		// Invalidate recipe cache if input slot is now empty
+		if (input.isEmpty()) {
+			recipeKey = ItemStack.EMPTY;
+			recipeOutput = ItemStack.EMPTY;
+		}
+
+		markDirty();
 	}
 
 	/**
@@ -232,7 +366,9 @@ public class TileEntitySmeltingBase extends TileEntity implements ITickable {
 	 * Increments cook time, and tries to smelt the current item.
 	 */
 	public void trySmelt(){
-		if (canSmelt(FINPUT(), FOUTPUT())) smeltItem( FINPUT(), FOUTPUT());
+		for (int[] pair : cookSlots()) {
+			if (canSmelt(pair[0], pair[1])) smeltItem(pair[0], pair[1]);
+		}
 	}
 
 	/**
@@ -252,7 +388,12 @@ public class TileEntitySmeltingBase extends TileEntity implements ITickable {
 			if (this.isBurning()) tank.drain(Math.max( getFluidBurnTime(tank.getFluid()) / 200,1), true);
 		} else if ((isEnergy() && !Energy) || (isFluid() && !Liquid) || (!isEnergy() && !isFluid()) ){
 
-			fuelLength = burnTime = getItemBurnTime(fuel) * getDefaultCookTime() / 200;
+			if (hasUpgradeType(ModObjects.ADVANCED_FUEL_EFFICIENCY_UPGRADE) || hasUpgradeType(ModObjects.FUEL_EFFICIENCY_UPGRADE)) {
+				fuelLength = burnTime = getItemBurnTime(fuel) * getDefaultCookTime();
+				fuelLength = MathHelper.clamp(fuelLength * Config.fuelEfficiencyStat, 200, Integer.MAX_VALUE);
+			} else {
+				fuelLength = burnTime = getItemBurnTime(fuel) * getDefaultCookTime() / 200;
+			}
 			if (this.isBurning()) {
 				Item item = fuel.getItem();
 				fuel.shrink(1);
@@ -325,7 +466,10 @@ public class TileEntitySmeltingBase extends TileEntity implements ITickable {
 		return !recipeOutput.isEmpty() && (output.isEmpty() || (ItemHandlerHelper.canItemStacksStack(check, output) && (check.getCount() + output.getCount() <= output.getMaxStackSize())));
 	}
 	public boolean canSmelts(){
-		return canSmelt(FINPUT(), FOUTPUT());
+		for (int[] pair : cookSlots()) {
+			if (canSmelt(pair[0], pair[1])) return true;
+		}
+		return false;
 	}
 	/**
 	 * Actually smelts the item in the input slot.  Has special casing for vanilla wet sponge, because w e w vanilla.
@@ -507,7 +651,7 @@ public class TileEntitySmeltingBase extends TileEntity implements ITickable {
 	}
 
 	protected int getDefaultCookTime() {
-		return 150;
+		return ironTierSpeed;
 	}
 
 	public int getEnergyUse() {
@@ -515,8 +659,20 @@ public class TileEntitySmeltingBase extends TileEntity implements ITickable {
 	}
 
 
+	public int getCurrentCookTime(int slot) {
+		return slot < slotCookTime.length ? slotCookTime[slot] : 0;
+	}
+
 	public int getCurrentCookTime() {
-		return currentCookTime;
+		int max = 0;
+		for (int t : slotCookTime) {
+			if (t > max) max = t;
+		}
+		return max;
+	}
+
+	public int[][] getCookSlots() {
+		return cookSlots();
 	}
 
 	public int getBurnTime() {
@@ -535,7 +691,7 @@ public class TileEntitySmeltingBase extends TileEntity implements ITickable {
 
 	public NBTTagCompound writeHwylaData(NBTTagCompound tag) {
 		tag.setTag("inv", inv.serializeNBT());
-		tag.setInteger("current_cook_time", currentCookTime);
+		tag.setIntArray("slot_cook_time", slotCookTime);
 		tag.setInteger("default_cook", getDefaultCookTime());
 		if (isFluid() && tank.getFluidAmount() > 0) tag.setTag("fluid", tank.getFluid().writeToNBT(new NBTTagCompound()));
 		return tag;
